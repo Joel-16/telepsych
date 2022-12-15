@@ -6,9 +6,6 @@ export class History extends BaseEntity{
 
    @PrimaryGeneratedColumn()
    id : number
-
-   @ManyToOne(()=> Account, account=>account.address)
-   account : Account
    
    @Column({type : 'timestamp', default : new Date()})
    date : Date

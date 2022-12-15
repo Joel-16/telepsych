@@ -3,43 +3,69 @@ import path from 'path';
 import { Service } from 'typedi';
 import { compareSync, hashSync } from 'bcrypt';
 
-import { Account } from '../entities';
+import { Patient, Doctor } from '../entities';
 import { createJwtToken } from '../utils/createJwtToken';
 import { CustomError } from '../utils/response/custom-error/CustomError';
 import { JwtPayload } from '../types/JwtPayload';
 import { ProfileDto } from '../types/dto';
 
+
 @Service()
 export class AccountService {
-  constructor(private readonly account = Account) {}
+  constructor(private readonly patient = Patient, private readonly doctor = Doctor) {}
 
   async login(payload : {email : string, password: string}, next : NextFunction) {
     try {
-      const account = await this.account.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
-      if (!account || !compareSync(payload.password, account.password)) {
-        return next(new CustomError(400, "General","Invalid credentials"));
+      const patient = await this.patient.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
+      if (patient){
+        if (!patient || !compareSync(payload.password, patient.password)) {
+          return next(new CustomError(400, "General","Invalid credentials"));
+        }
+        return {
+          token: createJwtToken({ id: patient.id, role: patient.role })
+        };
+      } else {
+        const doctor = await this.doctor.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
+        if (!doctor || !compareSync(payload.password, doctor.password)) {
+          return next(new CustomError(400, "General","Invalid credentials"));
+        }
+        return {
+          token: createJwtToken({ id: doctor.id, role: doctor.role })
+        };
       }
-      return {
-        token: createJwtToken({ id: account.id, role: account.role })
-      };
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
   async register(payload, next: NextFunction) {
     try {
-      const accounttest = await this.account.findOneBy({ email: payload.email });
-      if (accounttest) {
-        return next(new CustomError(401, "General", "Email already associated with an account"))
+      if (payload.role === 'PATIENT'){
+        const patientTest = await this.patient.findOneBy({ email: payload.email });
+        if (patientTest) {
+          return next(new CustomError(401, "General", "Email already associated with an patient"))
+        }
+        const patient = await this.patient.save({
+          email: payload.email,
+          password: hashSync(payload.password, 10),
+          role : payload.role
+        });
+        return {
+          token: createJwtToken({ id: patient.id, role: patient.role }),
+        }
+      } else {
+        const doctorTest = await this.doctor.findOneBy({ email: payload.email });
+        if (doctorTest) {
+          return next(new CustomError(401, "General", "Email already associated with an patient"))
+        }
+        const doctor = await this.doctor.save({
+          email: payload.email,
+          password: hashSync(payload.password, 10),
+          role : payload.role
+        });
+        return {
+          token: createJwtToken({ id: doctor.id, role: doctor.role }),
+        }
       }
-      const account = await this.account.save({
-        email: payload.email,
-        password: hashSync(payload.password, 10),
-        role : payload.role
-      });
-      return {
-        token: createJwtToken({ id: account.id, role: account.role }),
-      };
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
@@ -47,22 +73,33 @@ export class AccountService {
 
   async profile(payload: ProfileDto, jwtPayload: JwtPayload, next: NextFunction) {
     try {
-      const account = await this.account.findOneBy({ id: jwtPayload.id });
-      if (!account) {
-        return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+      if(jwtPayload.role === 'PATIENT'){
+        const patient = await this.patient.findOneBy({ id: jwtPayload.id });
+        if (!patient) {
+          return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+        }
+        patient.age = payload.age;
+        patient.state = payload.state;
+        patient.lga = payload.lga;
+        patient.firstname = payload.firstname;
+        patient.lastname = payload.lastname;
+        patient.phoneNumber = payload.phoneNumber;
+        await patient.save();
+        return patient;
+      } else {
+        const doctor = await this.doctor.findOneBy({ id: jwtPayload.id });
+        if (!doctor) {
+          return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+        }
+        doctor.age = payload.age;
+        doctor.state = payload.state;
+        doctor.lga = payload.lga;
+        doctor.firstname = payload.firstname;
+        doctor.lastname = payload.lastname;
+        doctor.phoneNumber = payload.phoneNumber;
+        await doctor.save();
+        return doctor;
       }
-      account.age = payload.age;
-      account.state = payload.state;
-      account.lga = payload.lga;
-      account.firstname = payload.firstname;
-      account.lastname = payload.lastname;
-      account.phoneNumber = payload.phoneNumber;
-      await account.save();
-      if (account.role === 'PATIENT'){
-        delete account.officeAddress
-        return account;
-      }
-      return account;
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
@@ -70,22 +107,26 @@ export class AccountService {
 
   async getProfile(jwtPayload: JwtPayload, next: NextFunction) {
     try {
-      const account = await this.account.findOneBy({ id: jwtPayload.id });
-      if (!account) {
-        return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+      if(jwtPayload.role === 'PATIENT'){
+        const patient = await this.patient.findOneBy({ id: jwtPayload.id });
+        if (!patient) {
+          return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+        }
+        return patient;
+      } else {
+        const doctor = await this.doctor.findOneBy({ id: jwtPayload.id });
+        if (!doctor) {
+          return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+        }
+        return doctor;
       }
-      if (account.role === 'PATIENT'){
-        delete account.officeAddress
-        return account;
-      }
-      return account;
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
 
   async findPsychiatrists(payload: {state : string, lga: string},next: NextFunction){
-    let result = await this.account.find({
+    let result = await this.doctor.find({
       where : {
         role : "DOCTOR",
         state : payload.state,
@@ -110,11 +151,11 @@ export class AccountService {
     return result
   }
   async delete(email) {
-    let a = await this.account.delete({ email });
+    let a = await this.patient.delete({ email });
     return a;
   }
 
   async all() {
-    return await this.account.find({ select: ['email'] });
+    return await this.patient.find({ select: ['email'] });
   }
 }

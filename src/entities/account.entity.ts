@@ -4,7 +4,7 @@ import { Photo,  Role } from '../types/dto';
 import { Chats } from "./chats.entity";
 
 @Entity()
-export class Account extends BaseEntity {
+export abstract class Account extends BaseEntity {
   @PrimaryGeneratedColumn()
   id : number
 
@@ -34,9 +34,6 @@ export class Account extends BaseEntity {
 
   @Column({unique : true})
   email : string
-
-  @Column({nullable : true})
-  officeAddress : string
 
   @Column({type : 'json',nullable : true})
   image : Photo
