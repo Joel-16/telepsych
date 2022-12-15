@@ -174,7 +174,7 @@ export class AccountService {
 
   async getComplaints(payload : JwtPayload, next: NextFunction){
     try {
-      let patient = await this.patient.findOne({where : {id : payload.id}, select : ["complaints"]})
+      let patient = await this.patient.findOne({where : {id : payload.id}, relations : {complaints : true}})
       return patient.complaints
     } catch (error) {
       return next(new CustomError(500, 'Raw', `Internal server error`, error));

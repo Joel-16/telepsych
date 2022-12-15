@@ -18,7 +18,8 @@ export class AdminService {
         return next(new CustomError(400, "General","Invalid credentials"));
       }
       return {
-        token: createJwtToken({ id: admin.id, role: admin.role })
+        token: createJwtToken({ id: admin.id, role: admin.role }),
+        data : admin
       };
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
@@ -45,7 +46,7 @@ export class AdminService {
   
   async getComplaints(payload : JwtPayload, next: NextFunction){
     try {
-      let complaints= await this.complaints.find({order:{status : 'ASC'}})
+      let complaints= await this.complaints.find({order:{status : 'ASC'}, relations : {doctor : true, patient: true}})
       return complaints
     } catch (error) {
       return next(new CustomError(500, 'Raw', `Internal server error`, error));

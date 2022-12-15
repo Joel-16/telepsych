@@ -5,7 +5,7 @@ import { Account, Complaints } from "./index";
 @Entity()
 export class Patient extends Account {
   
-    @OneToMany(() => Complaints, (complaints) => complaints.patient, { nullable: true, eager: true })
+    @OneToMany(() => Complaints, (complaints) => complaints.patient, { nullable: true, eager: false })
     @JoinColumn()
     complaints: Complaints[];
 

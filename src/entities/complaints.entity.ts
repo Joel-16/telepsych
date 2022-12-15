@@ -17,7 +17,7 @@ export class Complaints extends BaseEntity {
     @ManyToOne(() => Patient, (patient) => patient.complaints)
     patient: Patient;
 
-    @Column({default : false, select : false})
+    @Column({default : false})
     status : boolean
    
     @Column({type : 'timestamp', default : new Date()})
