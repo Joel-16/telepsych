@@ -1,6 +1,5 @@
-import { Entity, Column, BaseEntity, PrimaryGeneratedColumn, JoinColumn, OneToMany} from "typeorm";
-import { Role } from "../types/dto";
-import { Account } from "./index";
+import { Entity, Column, JoinColumn, OneToMany} from "typeorm";
+import { Account , Complaints} from "./index";
 
 @Entity()
 export class Doctor extends Account {
@@ -8,5 +7,8 @@ export class Doctor extends Account {
     @Column({nullable : true})
     officeAddress : string
    
- 
+    @OneToMany(() => Complaints, (complaints) => complaints.doctor, { nullable: true, eager: true })
+    @JoinColumn()
+    complaints: Complaints[];
+
 }

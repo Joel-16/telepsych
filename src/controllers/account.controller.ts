@@ -49,4 +49,20 @@ export class AccountController {
       next();
     }
   };
+
+  createComplaint =  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.customSuccess(200, await this.accountService.createComplaint(req.body,req.jwtPayload, next));
+    } catch {
+      next();
+    }
+  };
+
+  getComplaints = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.customSuccess(200, await this.accountService.getComplaints(req.jwtPayload, next));
+    } catch {
+      next();
+    }
+  };
 }

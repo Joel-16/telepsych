@@ -1,9 +1,8 @@
 import { NextFunction } from 'express';
-import path from 'path';
 import { Service } from 'typedi';
 import { compareSync, hashSync } from 'bcrypt';
 
-import { Patient, Doctor } from '../entities';
+import { Patient, Doctor, Complaints } from '../entities';
 import { createJwtToken } from '../utils/createJwtToken';
 import { CustomError } from '../utils/response/custom-error/CustomError';
 import { JwtPayload } from '../types/JwtPayload';
@@ -12,7 +11,11 @@ import { ProfileDto } from '../types/dto';
 
 @Service()
 export class AccountService {
-  constructor(private readonly patient = Patient, private readonly doctor = Doctor) {}
+  constructor(
+    private readonly patient = Patient, 
+    private readonly doctor = Doctor,
+    private readonly complaints = Complaints
+  ) {}
 
   async login(payload : {email : string, password: string}, next : NextFunction) {
     try {
@@ -150,11 +153,33 @@ export class AccountService {
     }
     return result
   }
-  async delete(email) {
-    let a = await this.patient.delete({ email });
-    return a;
+  async createComplaint(payload: {id : number, complaint : string},jwtPayload : JwtPayload,next: NextFunction) {
+    try {
+      let doctor = await this.doctor.findOneBy({id : payload.id})
+      if (!doctor){
+        return next(new CustomError(404, 'General', "Psyhiatrist account doesn't exist on this platform"));
+      }
+      let patient = await this.patient.findOneBy({id : jwtPayload.id})
+      let comp = await this.complaints.save({
+        complaint: payload.complaint
+      })
+      patient.complaints.push(comp)
+      doctor.complaints.push(comp)
+      await Promise.all([patient.save(), doctor.save()]);
+      return comp;
+    } catch (error) {
+      return next(new CustomError(500, 'Raw', `Internal server error`, error));
+    }
   }
 
+  async getComplaints(payload : JwtPayload, next: NextFunction){
+    try {
+      let patient = await this.patient.findOne({where : {id : payload.id}, select : ["complaints"]})
+      return patient.complaints
+    } catch (error) {
+      return next(new CustomError(500, 'Raw', `Internal server error`, error));
+    }
+  }
   async all() {
     return await this.patient.find({ select: ['email'] });
   }

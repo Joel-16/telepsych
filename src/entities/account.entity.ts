@@ -1,7 +1,5 @@
-import { Entity, Column, BaseEntity, PrimaryGeneratedColumn, JoinColumn, OneToMany} from "typeorm";
-import { History } from './history.entity';
+import { Entity, Column, BaseEntity, PrimaryGeneratedColumn} from "typeorm";
 import { Photo,  Role } from '../types/dto';
-import { Chats } from "./chats.entity";
 
 @Entity()
 export abstract class Account extends BaseEntity {

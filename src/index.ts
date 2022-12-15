@@ -36,14 +36,6 @@ app.use((req, res, next) => {
   next();
 });
 
-try {
-  const accessLogStream = fs.createWriteStream(path.join(__dirname, '../log/access.log'), {
-    flags: 'a',
-  });
-  app.use(morgan('combined', { stream: accessLogStream }));
-} catch (err) {
-  console.log(err);
-}
 app.use(morgan('combined'));
 app.get('/', (req, res) => {
   res.send({

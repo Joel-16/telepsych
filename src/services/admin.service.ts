@@ -2,14 +2,14 @@ import { NextFunction } from 'express';
 import { Service } from 'typedi';
 import { compareSync, hashSync } from 'bcrypt';
 
-import { Admin } from '../entities';
+import { Admin, Complaints } from '../entities';
 import { createJwtToken } from '../utils/createJwtToken';
 import { CustomError } from '../utils/response/custom-error/CustomError';
 import { JwtPayload } from '../types/JwtPayload';
 
 @Service()
 export class AdminService {
-  constructor(private readonly admin = Admin) {}
+  constructor(private readonly admin = Admin, private readonly complaints= Complaints) {}
 
   async login(payload : {email : string, password: string}, next : NextFunction) {
     try {
@@ -42,8 +42,16 @@ export class AdminService {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
+  
+  async getComplaints(payload : JwtPayload, next: NextFunction){
+    try {
+      let complaints= await this.complaints.find({order:{status : 'ASC'}})
+      return complaints
+    } catch (error) {
+      return next(new CustomError(500, 'Raw', `Internal server error`, error));
+    }
+  }
 
- 
   async delete(email) {
     let a = await this.admin.delete({ email });
     return a;
