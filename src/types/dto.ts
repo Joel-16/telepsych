@@ -1,5 +1,5 @@
 export class Photo {
-  link: string;
+  filename: string;
   path: string;
 }
 export class RegisterDto {

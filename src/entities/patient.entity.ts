@@ -1,5 +1,4 @@
 import { Entity, Column, JoinColumn, OneToMany} from "typeorm";
-import { Role } from "../types/dto";
 import { Account, Complaints } from "./index";
 
 @Entity()

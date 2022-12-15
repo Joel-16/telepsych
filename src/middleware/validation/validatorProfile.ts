@@ -28,7 +28,7 @@ export const validatorProfile = (req: Request, res: Response, next: NextFunction
     errorsValidation.push({ lga: 'Lga of residence is required' });
   }
 
-  if (typeof age != 'number' || age > 70) {
+  if (isNaN(Number(age)) || Number(age) > 70) {
     errorsValidation.push({ age: 'not a valid age format' });
   }
 
@@ -36,6 +36,6 @@ export const validatorProfile = (req: Request, res: Response, next: NextFunction
     const customError = new CustomError(400, 'Validation', 'Register validation error', errorsValidation);
     return next(customError);
   }
-  req.body.phoneNumber = phoneNumber.replace('0', '+234');
+  req.body.age = Number(age)
   return next();
 };

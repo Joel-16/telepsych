@@ -25,8 +25,9 @@ export class AccountController {
 
   profile = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const {filename, path} = req?.file;
       const jwtPayload = req.jwtPayload
-      res.customSuccess(200, await this.accountService.profile(req.body, jwtPayload, next));
+      res.customSuccess(200, await this.accountService.profile(req.body, jwtPayload, {filename, path}, next));
     } catch {
       next();
     }
@@ -61,6 +62,14 @@ export class AccountController {
   getComplaints = async (req: Request, res: Response, next: NextFunction) => {
     try {
       res.customSuccess(200, await this.accountService.getComplaints(req.jwtPayload, next));
+    } catch {
+      next();
+    }
+  };
+
+  all = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.customSuccess(200, await this.accountService.all());
     } catch {
       next();
     }

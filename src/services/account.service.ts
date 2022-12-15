@@ -1,12 +1,12 @@
 import { NextFunction } from 'express';
 import { Service } from 'typedi';
 import { compareSync, hashSync } from 'bcrypt';
-
+import { v2 as cloudinary } from 'cloudinary';
 import { Patient, Doctor, Complaints } from '../entities';
 import { createJwtToken } from '../utils/createJwtToken';
 import { CustomError } from '../utils/response/custom-error/CustomError';
 import { JwtPayload } from '../types/JwtPayload';
-import { ProfileDto } from '../types/dto';
+import { Photo, ProfileDto } from '../types/dto';
 
 
 @Service()
@@ -31,6 +31,9 @@ export class AccountService {
         const doctor = await this.doctor.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
         if (!doctor || !compareSync(payload.password, doctor.password)) {
           return next(new CustomError(400, "General","Invalid credentials"));
+        }
+        if(doctor.suspended){
+          return next(new CustomError(400, "Unauthorized", "Account suspended, Please contact the Admin"))
         }
         return {
           token: createJwtToken({ id: doctor.id, role: doctor.role })
@@ -74,12 +77,15 @@ export class AccountService {
     }
   }
 
-  async profile(payload: ProfileDto, jwtPayload: JwtPayload, next: NextFunction) {
+  async profile(payload: ProfileDto, jwtPayload: JwtPayload, image: Photo, next: NextFunction) {
     try {
       if(jwtPayload.role === 'PATIENT'){
         const patient = await this.patient.findOneBy({ id: jwtPayload.id });
         if (!patient) {
           return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
+        }
+        if(patient.image.filename){
+          await cloudinary.uploader.destroy(patient.image.filename);
         }
         patient.age = payload.age;
         patient.state = payload.state;
@@ -87,6 +93,7 @@ export class AccountService {
         patient.firstname = payload.firstname;
         patient.lastname = payload.lastname;
         patient.phoneNumber = payload.phoneNumber;
+        patient.image = image;        
         await patient.save();
         return patient;
       } else {
@@ -94,12 +101,16 @@ export class AccountService {
         if (!doctor) {
           return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
         }
+        if(doctor.image.filename){
+          await cloudinary.uploader.destroy(doctor.image.filename);
+        }
         doctor.age = payload.age;
         doctor.state = payload.state;
         doctor.lga = payload.lga;
         doctor.firstname = payload.firstname;
         doctor.lastname = payload.lastname;
         doctor.phoneNumber = payload.phoneNumber;
+        doctor.image = image
         await doctor.save();
         return doctor;
       }
@@ -133,7 +144,8 @@ export class AccountService {
       where : {
         role : "DOCTOR",
         state : payload.state,
-        lga: payload.lga 
+        lga: payload.lga,
+        suspended : false 
       },
       select: [
         "id",
@@ -181,6 +193,9 @@ export class AccountService {
     }
   }
   async all() {
-    return await this.patient.find({ select: ['email'] });
+    return {
+      patients :await this.patient.find({ select: ['id', "email"] }),
+      doctors : await this.doctor.find({select : ["id", 'email', 'suspended']})
+  };
   }
 }
