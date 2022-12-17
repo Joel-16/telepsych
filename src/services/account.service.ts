@@ -39,7 +39,7 @@ export class AccountService {
         }
         return {
           token: createJwtToken({ id: doctor.id, role: doctor.role }),
-          profile : patient.firstname ? true : false
+          profile : doctor.firstname ? true : false
         };
       }
     } catch (err) {
