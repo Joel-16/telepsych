@@ -48,11 +48,11 @@ export class AccountService {
   }
   async register(payload, next: NextFunction) {
     try {
+      let status = await this.patient.findOneBy({ email: payload.email }) ||  await this.doctor.findOneBy({ email: payload.email });
+      if (status){
+        return next(new CustomError(401, "General", "Email already associated with an patient"))
+      }
       if (payload.role === 'PATIENT'){
-        const patientTest = await this.patient.findOneBy({ email: payload.email });
-        if (patientTest) {
-          return next(new CustomError(401, "General", "Email already associated with an patient"))
-        }
         const patient = await this.patient.save({
           email: payload.email,
           password: hashSync(payload.password, 10),
@@ -62,10 +62,6 @@ export class AccountService {
           token: createJwtToken({ id: patient.id, role: patient.role }),
         }
       } else {
-        const doctorTest = await this.doctor.findOneBy({ email: payload.email });
-        if (doctorTest) {
-          return next(new CustomError(401, "General", "Email already associated with an patient"))
-        }
         const doctor = await this.doctor.save({
           email: payload.email,
           password: hashSync(payload.password, 10),
