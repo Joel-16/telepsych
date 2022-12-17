@@ -114,6 +114,7 @@ export class AccountService {
         return doctor;
       }
     } catch (err) {
+      console.log(err)
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
