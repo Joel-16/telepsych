@@ -41,7 +41,7 @@ router.get('/complaints', [checkJwt], accountController.getComplaints);
 
 //Admin
 router.post('/admin/register', adminController.register);
-router.post('/admin/login', adminController.login);
+router.post('/admin/login', [validatorLogin], adminController.login);
 router.get('/admin/complaints', [checkJwt], adminController.getComplaints);
 router.get('/admin/suspend/:id', [checkJwt], adminController.suspendDoctor);
 

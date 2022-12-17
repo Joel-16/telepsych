@@ -19,16 +19,18 @@ export class AccountService {
 
   async login(payload : {email : string, password: string}, next : NextFunction) {
     try {
-      const patient = await this.patient.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
+      const patient = await this.patient.findOne({where : {email: payload.email }, select : ["password", "id", "role", "firstname"]});
       if (patient){
         if (!patient || !compareSync(payload.password, patient.password)) {
           return next(new CustomError(400, "General","Invalid credentials"));
         }
+       
         return {
-          token: createJwtToken({ id: patient.id, role: patient.role })
+          token: createJwtToken({ id: patient.id, role: patient.role }),
+          profile : patient.firstname ? true : false
         };
       } else {
-        const doctor = await this.doctor.findOne({where : {email: payload.email }, select : ["password", "id", "role"]});
+        const doctor = await this.doctor.findOne({where : {email: payload.email }, select : ["password", "id", "role", "firstname"]});
         if (!doctor || !compareSync(payload.password, doctor.password)) {
           return next(new CustomError(400, "General","Invalid credentials"));
         }
@@ -36,7 +38,8 @@ export class AccountService {
           return next(new CustomError(400, "Unauthorized", "Account suspended, Please contact the Admin"))
         }
         return {
-          token: createJwtToken({ id: doctor.id, role: doctor.role })
+          token: createJwtToken({ id: doctor.id, role: doctor.role }),
+          profile : patient.firstname ? true : false
         };
       }
     } catch (err) {
