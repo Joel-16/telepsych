@@ -33,7 +33,7 @@ export abstract class Account extends BaseEntity {
   @Column({unique : true})
   email : string
 
-  @Column({type : 'json',nullable : true})
+  @Column({type : 'json', default : {filename : null, path : null}})
   image : Photo
 
   @Column({type : 'timestamp', default : new Date()})
