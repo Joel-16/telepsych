@@ -5,7 +5,10 @@ import { Photo,  Role } from '../types/dto';
 export abstract class Account extends BaseEntity {
   @PrimaryGeneratedColumn()
   id : number
-
+  
+  @Column({unique : true})
+  email : string
+  
   @Column()
   role : Role
 
@@ -30,8 +33,6 @@ export abstract class Account extends BaseEntity {
   @Column({select : false})
   password : string
 
-  @Column({unique : true})
-  email : string
 
   @Column({type : 'json', default : {filename : null, path : null}})
   image : Photo

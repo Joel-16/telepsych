@@ -32,9 +32,10 @@ const adminController = Container.get(AdminController);
 
 router.post('/register', [validatorRegister], accountController.register);
 router.post('/login', [validatorLogin], accountController.login);
+
 router.post('/profile', [checkJwt, upload1.single("image"), validatorProfile], accountController.profile);
 router.get('/profile', [checkJwt], accountController.getProfile);
-router.get('/all', accountController.all)
+router.get("/doctors", [checkJwt], accountController.findPsychiatrists)
 
 router.post('/complaint', [checkJwt, validatorComplaint], accountController.createComplaint);
 router.get('/complaints', [checkJwt], accountController.getComplaints);
@@ -45,4 +46,5 @@ router.post('/admin/login', [validatorLogin], adminController.login);
 router.get('/admin/complaints', [checkJwt], adminController.getComplaints);
 router.get('/admin/suspend/:id', [checkJwt], adminController.suspendDoctor);
 
+router.get('/all', accountController.all)
 export default router;

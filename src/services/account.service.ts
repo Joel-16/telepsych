@@ -7,39 +7,45 @@ import { createJwtToken } from '../utils/createJwtToken';
 import { CustomError } from '../utils/response/custom-error/CustomError';
 import { JwtPayload } from '../types/JwtPayload';
 import { Photo, ProfileDto } from '../types/dto';
-
+import { Not } from 'typeorm';
 
 @Service()
 export class AccountService {
   constructor(
-    private readonly patient = Patient, 
+    private readonly patient = Patient,
     private readonly doctor = Doctor,
-    private readonly complaints = Complaints
+    private readonly complaints = Complaints,
   ) {}
 
-  async login(payload : {email : string, password: string}, next : NextFunction) {
+  async login(payload: { email: string; password: string }, next: NextFunction) {
     try {
-      const patient = await this.patient.findOne({where : {email: payload.email }, select : ["password", "id", "role", "firstname"]});
-      if (patient){
+      const patient = await this.patient.findOne({
+        where: { email: payload.email },
+        select: ['password', 'id', 'role', 'firstname'],
+      });
+      if (patient) {
         if (!patient || !compareSync(payload.password, patient.password)) {
-          return next(new CustomError(400, "General","Invalid credentials"));
+          return next(new CustomError(400, 'General', 'Invalid credentials'));
         }
-       
+
         return {
           token: createJwtToken({ id: patient.id, role: patient.role }),
-          profile : patient.firstname ? true : false
+          profile: patient.firstname ? true : false,
         };
       } else {
-        const doctor = await this.doctor.findOne({where : {email: payload.email }, select : ["password", "id", "role", "firstname"]});
+        const doctor = await this.doctor.findOne({
+          where: { email: payload.email },
+          select: ['password', 'id', 'role', 'firstname'],
+        });
         if (!doctor || !compareSync(payload.password, doctor.password)) {
-          return next(new CustomError(400, "General","Invalid credentials"));
+          return next(new CustomError(400, 'General', 'Invalid credentials'));
         }
-        if(doctor.suspended){
-          return next(new CustomError(400, "Unauthorized", "Account suspended, Please contact the Admin"))
+        if (doctor.suspended) {
+          return next(new CustomError(400, 'Unauthorized', 'Account suspended, Please contact the Admin'));
         }
         return {
           token: createJwtToken({ id: doctor.id, role: doctor.role }),
-          profile : doctor.firstname ? true : false
+          profile: doctor.firstname ? true : false,
         };
       }
     } catch (err) {
@@ -48,28 +54,30 @@ export class AccountService {
   }
   async register(payload, next: NextFunction) {
     try {
-      let status = await this.patient.findOneBy({ email: payload.email }) ||  await this.doctor.findOneBy({ email: payload.email });
-      if (status){
-        return next(new CustomError(401, "General", "Email already associated with an patient"))
+      let status =
+        (await this.patient.findOneBy({ email: payload.email })) ||
+        (await this.doctor.findOneBy({ email: payload.email }));
+      if (status) {
+        return next(new CustomError(401, 'General', 'Email already associated with an patient'));
       }
-      if (payload.role === 'PATIENT'){
+      if (payload.role === 'PATIENT') {
         const patient = await this.patient.save({
           email: payload.email,
           password: hashSync(payload.password, 10),
-          role : payload.role
+          role: payload.role,
         });
         return {
           token: createJwtToken({ id: patient.id, role: patient.role }),
-        }
+        };
       } else {
         const doctor = await this.doctor.save({
           email: payload.email,
           password: hashSync(payload.password, 10),
-          role : payload.role
+          role: payload.role,
         });
         return {
           token: createJwtToken({ id: doctor.id, role: doctor.role }),
-        }
+        };
       }
     } catch (err) {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
@@ -78,12 +86,12 @@ export class AccountService {
 
   async profile(payload: ProfileDto, jwtPayload: JwtPayload, image: Photo, next: NextFunction) {
     try {
-      if(jwtPayload.role === 'PATIENT'){
+      if (jwtPayload.role === 'PATIENT') {
         const patient = await this.patient.findOneBy({ id: jwtPayload.id });
         if (!patient) {
           return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
         }
-        if(patient.image.filename){
+        if (patient.image.filename) {
           await cloudinary.uploader.destroy(patient.image.filename);
         }
         patient.age = payload.age;
@@ -92,7 +100,7 @@ export class AccountService {
         patient.firstname = payload.firstname;
         patient.lastname = payload.lastname;
         patient.phoneNumber = payload.phoneNumber;
-        patient.image = image;        
+        patient.image = image;
         await patient.save();
         return patient;
       } else {
@@ -100,7 +108,7 @@ export class AccountService {
         if (!doctor) {
           return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
         }
-        if(doctor.image.filename){
+        if (doctor.image.filename) {
           await cloudinary.uploader.destroy(doctor.image.filename);
         }
         doctor.age = payload.age;
@@ -109,19 +117,19 @@ export class AccountService {
         doctor.firstname = payload.firstname;
         doctor.lastname = payload.lastname;
         doctor.phoneNumber = payload.phoneNumber;
-        doctor.image = image
+        doctor.image = image;
         await doctor.save();
         return doctor;
       }
     } catch (err) {
-      console.log(err)
+      console.log(err);
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
 
   async getProfile(jwtPayload: JwtPayload, next: NextFunction) {
     try {
-      if(jwtPayload.role === 'PATIENT'){
+      if (jwtPayload.role === 'PATIENT') {
         const patient = await this.patient.findOneBy({ id: jwtPayload.id });
         if (!patient) {
           return next(new CustomError(404, 'General', "Account doesn't exist on this platform"));
@@ -139,44 +147,51 @@ export class AccountService {
     }
   }
 
-  async findPsychiatrists(payload: {state : string, lga: string},next: NextFunction){
-    let result = await this.doctor.find({
-      where : {
-        role : "DOCTOR",
-        state : payload.state,
-        lga: payload.lga,
-        suspended : false 
+  async findPsychiatrists(jwtPayload: JwtPayload, next: NextFunction) {
+    let patient = await this.patient.findOne({ where: { id: jwtPayload.id }, select: ['state', 'lga'] });
+    let lga = await this.doctor.find({
+      where: {
+        role: 'DOCTOR',
+        lga: patient.lga,
+        suspended: false,
       },
-      select: [
-        "id",
-        "image",
-        "firstname",
-        "lastname",
-        "state",
-        "lga",
-        "phoneNumber",
-        "officeAddress"
-      ]
-    })
-    if (result.length === 0){
-      return {
-        message: "No psychiatrist within your location, Please try again with another location parameter"
-      }
-    }
-    return result
+      select: ['id', 'image', 'firstname', 'lastname', 'state', 'lga', 'phoneNumber', 'officeAddress'],
+    });
+
+    let statewise = await this.doctor.find({
+      where: {
+        role: 'DOCTOR',
+        state: patient.state,
+        lga: Not(patient.lga),
+        suspended: false,
+      },
+      select: ['id', 'image', 'firstname', 'lastname', 'state', 'lga', 'phoneNumber', 'officeAddress'],
+    });
+
+    let national = await this.doctor.find({
+      where: {
+        role: 'DOCTOR',
+        state: Not(patient.state),
+        lga: Not(patient.lga),
+        suspended: false,
+      },
+      select: ['id', 'image', 'firstname', 'lastname', 'state', 'lga', 'phoneNumber', 'officeAddress'],
+    });
+
+    return [...lga, ...statewise, ...national];
   }
-  async createComplaint(payload: {id : number, complaint : string},jwtPayload : JwtPayload,next: NextFunction) {
+  async createComplaint(payload: { id: number; complaint: string }, jwtPayload: JwtPayload, next: NextFunction) {
     try {
-      let doctor = await this.doctor.findOneBy({id : payload.id})
-      if (!doctor){
+      let doctor = await this.doctor.findOneBy({ id: payload.id });
+      if (!doctor) {
         return next(new CustomError(404, 'General', "Psyhiatrist account doesn't exist on this platform"));
       }
-      let patient = await this.patient.findOneBy({id : jwtPayload.id})
+      let patient = await this.patient.findOneBy({ id: jwtPayload.id });
       let comp = await this.complaints.save({
-        complaint: payload.complaint
-      })
-      patient.complaints.push(comp)
-      doctor.complaints.push(comp)
+        complaint: payload.complaint,
+      });
+      patient.complaints.push(comp);
+      doctor.complaints.push(comp);
       await Promise.all([patient.save(), doctor.save()]);
       return comp;
     } catch (error) {
@@ -184,18 +199,18 @@ export class AccountService {
     }
   }
 
-  async getComplaints(payload : JwtPayload, next: NextFunction){
+  async getComplaints(payload: JwtPayload, next: NextFunction) {
     try {
-      let patient = await this.patient.findOne({where : {id : payload.id}, relations : {complaints : true}})
-      return patient.complaints
+      let patient = await this.patient.findOne({ where: { id: payload.id }, relations: { complaints: true } });
+      return patient.complaints;
     } catch (error) {
       return next(new CustomError(500, 'Raw', `Internal server error`, error));
     }
   }
   async all() {
     return {
-      patients :await this.patient.find({ select: ['id', "email"] }),
-      doctors : await this.doctor.find({select : ["id", 'email', 'suspended']})
-  };
+      patients: await this.patient.find({ select: ['id', 'email'] }),
+      doctors: await this.doctor.find({ select: ['id', 'email', 'suspended'] }),
+    };
   }
 }

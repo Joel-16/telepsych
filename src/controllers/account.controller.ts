@@ -44,8 +44,7 @@ export class AccountController {
 
   findPsychiatrists =  async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const query = req.params as {state : string, lga : string}
-      res.customSuccess(200, await this.accountService.findPsychiatrists(query, next));
+      res.customSuccess(200, await this.accountService.findPsychiatrists(req.jwtPayload, next));
     } catch {
       next();
     }
