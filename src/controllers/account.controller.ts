@@ -33,6 +33,17 @@ export class AccountController {
     }
   };
 
+  uploadCerts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const jwtPayload = req.jwtPayload
+      const unicert = req.files["uniCert"][0];
+      const doctorCert = req.files["doctorCert"][0];
+      res.customSuccess(200, await this.accountService.uploadCerts(unicert, doctorCert, jwtPayload, next));
+    } catch {
+      next();
+    }
+  };
+
   getProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jwtPayload = req.jwtPayload

@@ -17,14 +17,22 @@ cloudinary.config({
   api_key: process.env.API_KEY,
   api_secret: process.env.API_SECRET,
 });
-const multerOpts: cloudinaryOptions = {
+const multerOpts1: cloudinaryOptions = {
   cloudinary: cloudinary,
   params: {
     folder: 'image',
   },
 };
-const storage = new CloudinaryStorage(multerOpts);
+const multerOpts2: cloudinaryOptions = {
+  cloudinary: cloudinary,
+  params: {
+    folder: 'credentials',
+  },
+};
 
+const storage = new CloudinaryStorage(multerOpts1)
+const storage2 = new CloudinaryStorage(multerOpts2);
+const upload2 = multer({ storage: storage2 });
 const upload1 = multer({ storage: storage });
 const router = Router();
 const accountController = Container.get(AccountController);
@@ -34,6 +42,7 @@ router.post('/register', [validatorRegister], accountController.register);
 router.post('/login', [validatorLogin], accountController.login);
 
 router.post('/profile', [checkJwt, upload1.single("image"), validatorProfile], accountController.profile);
+router.post('/certs', [checkJwt, upload2.fields([{name : "uniCert", maxCount : 1}, {name : "doctorCert", maxCount: 1}])], accountController.uploadCerts)
 router.get('/profile', [checkJwt], accountController.getProfile);
 router.get("/doctors", [checkJwt], accountController.findPsychiatrists)
 

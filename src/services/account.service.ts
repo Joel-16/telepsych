@@ -126,7 +126,21 @@ export class AccountService {
       return next(new CustomError(500, 'Raw', `Internal server error`, err));
     }
   }
+  async uploadCerts(uniCert, doctorCert, jwtPayload : JwtPayload,next : NextFunction){
+    try {
+      if(jwtPayload.role === "DOCTOR"){
+        let doctor = await this.doctor.findOne({where : {id : jwtPayload.id}, select : ["doctorCert", "uniCert"]})
+        doctor.uniCert= {filename : uniCert.filename, path : uniCert.path};
+        doctor.doctorCert = {filename : doctorCert.filename, path : doctorCert.path};
+        await doctor.save()
+        return { message : "success"}
+      }
+    } catch (error) {
+      console.log(error);
+      return next(new CustomError(500, 'Raw', `Internal server error`));
+    }
 
+  }
   async getProfile(jwtPayload: JwtPayload, next: NextFunction) {
     try {
       if (jwtPayload.role === 'PATIENT') {
