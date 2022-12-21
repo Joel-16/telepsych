@@ -48,6 +48,7 @@ router.get("/doctors", [checkJwt], accountController.findPsychiatrists)
 
 router.post('/complaint', [checkJwt, validatorComplaint], accountController.createComplaint);
 router.get('/complaints', [checkJwt], accountController.getComplaints);
+router.get('/history', [checkJwt], accountController.history)
 
 //Admin
 router.post('/admin/register', adminController.register);

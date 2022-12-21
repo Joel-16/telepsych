@@ -139,7 +139,23 @@ export class AccountService {
       console.log(error);
       return next(new CustomError(500, 'Raw', `Internal server error`));
     }
+  }
 
+  async history(jwtPayload: JwtPayload, next: NextFunction){
+    try {
+      if (jwtPayload.role === "DOCTOR"){
+        let doctor = await this.doctor.findOne({where : { id : jwtPayload.id}, select: ["history"]})
+        return doctor.history
+      } else if(jwtPayload.role === "PATIENT"){
+        let patient = await this.patient.findOne({where : { id : jwtPayload.id}, select: ["history"]})
+        return patient.history
+      } else {
+        return
+      }
+    } catch (error) {
+      console.log(error);
+      return next(new CustomError(500, 'Raw', `Internal server error`));
+    }
   }
   async getProfile(jwtPayload: JwtPayload, next: NextFunction) {
     try {

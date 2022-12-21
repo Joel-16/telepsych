@@ -77,6 +77,14 @@ export class AccountController {
     }
   };
 
+  history = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.customSuccess(200, await this.accountService.history(req.jwtPayload, next));
+    } catch {
+      next();
+    }
+  };
+
   all = async (req: Request, res: Response, next: NextFunction) => {
     try {
       res.customSuccess(200, await this.accountService.all());
